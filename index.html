@@ -56,7 +56,7 @@
         <div id="map"></div>
         
         <div class="sidebar">
-            <button id="toggleViewBtn" class="toggle-btn">Ver Pontos de Adoção</button>
+            <button id="toggleViewBtn" class="toggle-btn">Cadastrar Novo Ponto de Adoção</button>
             
             <div id="sensorInfoSection">
                 <h2>Informações do seu dispositivo</h2>
@@ -113,7 +113,13 @@
         let userMarker;
         let adoptionMarkers = [];
 
-        // ==== Lógica de inicialização da aplicação ====
+        // ==== CRIAÇÃO IMEDIATA DO MAPA (SOLUÇÃO PARA O ERRO) ====
+        map = L.map('map').setView([-23.5505, -46.6333], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // ==== Lógica de inicialização da aplicação (ASYNC) ====
         async function initializeApp() {
             try {
                 const response = await fetch('/api/firebaseConfig');
@@ -122,8 +128,8 @@
                 db = firebase.firestore();
                 console.log('Firebase e Firestore inicializados com sucesso!');
 
-                initMapAndSensors();
-                loadAdoptionLocations();
+                initSensorsAndLocation(); // Inicia sensores e localização
+                loadAdoptionLocations(); // Carrega dados do Firestore
             } catch (error) {
                 console.error('Erro na inicialização da aplicação:', error);
                 alert('Erro ao carregar a aplicação. Verifique a configuração.');
@@ -131,12 +137,8 @@
         }
 
         // ==== Lógica de mapa e sensores ====
-        function initMapAndSensors() {
-            map = L.map('map').setView([-23.5505, -46.6333], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-
+        function initSensorsAndLocation() {
+            
             // Marcador de localização do usuário
             const userIcon = L.divIcon({ html: "📍", className: "user-icon", iconSize: [24, 24], iconAnchor: [12, 12] });
             userMarker = L.marker([0, 0], { icon: userIcon }).addTo(map);
@@ -158,7 +160,6 @@
             }
 
             // Lógica para bússola, acelerômetro e sensor de luz
-            // (mantida do seu primeiro projeto)
             if (window.DeviceOrientationEvent) {
                 window.addEventListener("deviceorientation", function(event) {
                     if (event.absolute || event.webkitCompassHeading !== undefined) {
