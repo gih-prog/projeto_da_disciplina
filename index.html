@@ -1,884 +1,386 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Adoção de Animais</title>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-auth-compat.min.js"></script>
-    
-    <style>
-        :root {
-            --bg-primary: #f0f2f5;
-            --bg-secondary: #ffffff;
-            --text-primary: #333333;
-            --text-secondary: #555555;
-            --header-gradient-1: #4facfe;
-            --header-gradient-2: #00f2fe;
-            --border-color: #e9ecef;
-            --shadow-color: rgba(0,0,0,0.1);
-            --input-bg: #ffffff;
-            --sidebar-bg: #ffffff;
-        }
-
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --text-primary: #e0e0e0;
-            --text-secondary: #b0b0b0;
-            --header-gradient-1: #2c5282;
-            --header-gradient-2: #1a365d;
-            --border-color: #404040;
-            --shadow-color: rgba(0,0,0,0.5);
-            --input-bg: #3a3a3a;
-            --sidebar-bg: #2d2d2d;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg-primary); 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column;
-            transition: background 0.3s ease;
-        }
-        
-        .header { 
-            background: linear-gradient(135deg, var(--header-gradient-1) 0%, var(--header-gradient-2) 100%); 
-            color: white; 
-            padding: 20px; 
-            text-align: center; 
-            box-shadow: 0 4px 8px var(--shadow-color);
-            position: relative;
-        }
-        
-        .header h1 { font-size: 2rem; margin-bottom: 5px; }
-        .header p { font-size: 1rem; opacity: 0.9; }
-        
-        .header-controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .theme-toggle, .login-btn {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .theme-toggle:hover, .login-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.05);
-        }
-
-        .user-info {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logout-btn {
-            background: rgba(255,100,100,0.8);
-            border: none;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,80,80,1);
-        }
-        
-        .container { display: flex; flex-grow: 1; }
-        
-        #map { flex-grow: 1; height: 100vh; min-height: 600px; }
-        
-        .sidebar { 
-            background: var(--sidebar-bg); 
-            width: 350px; 
-            padding: 20px; 
-            box-shadow: -4px 0 8px var(--shadow-color); 
-            overflow-y: auto;
-            transition: background 0.3s ease;
-        }
-        
-        .sidebar h2 { margin-bottom: 20px; color: var(--text-primary); }
-        
-        .sensor-info { 
-            margin-bottom: 20px; 
-            padding: 15px; 
-            border-radius: 8px; 
-            background: var(--bg-primary); 
-            border: 1px solid var(--border-color); 
-        }
-        
-        .sensor-info .sensor { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-bottom: 8px; 
-            font-size: 0.9rem;
-            color: var(--text-primary);
-        }
-        
-        .sensor-info .sensor strong { color: var(--text-secondary); }
-        
-        .toggle-btn { 
-            background: #6c757d; 
-            color: white; 
-            border: none; 
-            padding: 10px; 
-            border-radius: 5px; 
-            width: 100%; 
-            cursor: pointer; 
-            margin-bottom: 20px; 
-        }
-        
-        .toggle-btn:hover { background: #5a6268; }
-        
-        #adoptionFormSection { display: none; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { 
-            display: block; 
-            margin-bottom: 5px; 
-            font-weight: 600; 
-            color: var(--text-primary); 
-        }
-        
-        .form-group input, .form-group textarea { 
-            width: 100%; 
-            padding: 8px; 
-            border: 1px solid var(--border-color); 
-            border-radius: 4px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-        }
-        
-        .submit-btn { 
-            background: #28a745; 
-            color: white; 
-            border: none; 
-            padding: 10px; 
-            border-radius: 5px; 
-            width: 100%; 
-            cursor: pointer; 
-        }
-        
-        .submit-btn:hover { background: #218838; }
-        
-        .submit-btn:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-        }
-
-        .compass-arrow { 
-            display: inline-block; 
-            transform-origin: center; 
-            font-size: 24px; 
-            transition: transform 0.2s; 
-        }
-        
-        .leaflet-div-icon { background: transparent; border: none; }
-
-        /* Estilos do Popup de Adoção */
-        .adoption-popup {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-width: 320px;
-        }
-
-        .adoption-popup h3 {
-            color: #4facfe;
-            margin-bottom: 10px;
-            font-size: 1.3rem;
-            border-bottom: 2px solid #4facfe;
-            padding-bottom: 8px;
-        }
-
-        .adoption-info {
-            margin-bottom: 15px;
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
-        .adoption-info p {
-            margin: 5px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .adoption-info strong {
-            color: #555;
-            min-width: 80px;
-        }
-
-        /* Estilos para Dark Mode */
-        [data-theme="dark"] .adoption-popup .adoption-info strong {
-            color: var(--text-secondary);
-        }
-
-        .pets-gallery {
-            margin-top: 15px;
-        }
-
-        .pets-gallery h4 {
-            color: var(--text-primary);
-            margin-bottom: 12px;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .pets-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .pet-card {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px var(--shadow-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            aspect-ratio: 1;
-        }
-
-        .pet-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px var(--shadow-color);
-        }
-
-        .pet-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .pet-card-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-            color: white;
-            padding: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .pet-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #ff6b6b;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        /* Modal de Login */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--bg-secondary);
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 8px 32px var(--shadow-color);
-            position: relative;
-        }
-
-        /* Estilos de Autenticação, não repetidos para concisão */
-
-        .auth-required-message {
-            background: #fff3cd;
-            color: #856404;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            border: 1px solid #ffeaa7;
-        }
-
-        [data-theme="dark"] .auth-required-message {
-            background: #3d3d1f;
-            color: #f4d03f;
-            border-color: #5a5a2f;
-        }
-
-        @media (max-width: 768px) {
-            .header-controls {
-                position: static;
-                justify-content: center;
-                margin-top: 15px;
-            }
-
-            .container {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                max-height: 50vh;
-            }
-
-            #map {
-                height: 50vh;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Mapa de Adoção de Animais</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+  />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .header h1 {
+      font-size: 2rem;
+      margin-bottom: 5px;
+    }
+    .header p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+    .container {
+      display: flex;
+      flex-grow: 1;
+    }
+    #map {
+      flex-grow: 1;
+      height: 100vh;
+      min-height: 600px;
+    }
+    .sidebar {
+      background: white;
+      width: 350px;
+      padding: 20px;
+      box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+    .sidebar h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .sensor-info {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+    }
+    .sensor-info .sensor {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .sensor-info .sensor strong {
+      color: #555;
+    }
+    .toggle-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      width: 100%;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .toggle-btn:hover {
+      background: #5a6268;
+    }
+    #adoptionFormSection {
+      display: none;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #333;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .submit-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      width: 100%;
+      cursor: pointer;
+    }
+    .submit-btn:hover {
+      background: #218838;
+    }
+    .compass-arrow {
+      display: inline-block;
+      transform-origin: center;
+      font-size: 24px;
+      transition: transform 0.2s;
+    }
+    .leaflet-div-icon {
+      background: transparent;
+      border: none;
+    }
+  </style>
 </head>
 <body>
-        <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeLoginModal()">&times;</span>
-            <h2>🐾 Login / Cadastro</h2>
-            
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchTab('login')">Login</button>
-                <button class="auth-tab" onclick="switchTab('register')">Cadastro</button>
-            </div>
+  <div class="header">
+    <h1>🐾 Mapa de Adoção de Animais</h1>
+    <p>Encontre animais para adoção perto de você ou cadastre um novo ponto.</p>
+  </div>
+  <div class="container">
+    <div id="map"></div>
+    <div class="sidebar">
+      <button id="toggleViewBtn" class="toggle-btn">Cadastrar Novo Ponto de Adoção</button>
+      <div id="sensorInfoSection">
+        <h2>Informações do seu dispositivo</h2>
+        <div class="sensor-info">
+          <div class="sensor"><span>📍 Localização:</span> <strong id="location">Aguardando...</strong></div>
+          <div class="sensor"><span>🧭 Bússola:</span> <strong id="compass">Aguardando...</strong> <span class="compass-arrow" id="arrow">⬆️</span></div>
+          <div class="sensor"><span>📐 Acelerômetro:</span> <strong id="motion">Aguardando...</strong></div>
+          <div class="sensor"><span>💡 Luz ambiente:</span> <strong id="light">Aguardando...</strong></div>
+        </div>
+      </div>
+      <div id="adoptionFormSection">
+        <h2>Cadastrar Novo Ponto de Adoção</h2>
+        <form id="adoptionForm">
+          <div class="form-group">
+            <label for="ongName">Nome da ONG:</label>
+            <input type="text" id="ongName" required />
+          </div>
+          <div class="form-group">
+            <label for="animalName">Nome do Animal:</label>
+            <input type="text" id="animalName" required />
+          </div>
+          <div class="form-group">
+            <label for="animalInfo">Info. do Animal:</label>
+            <textarea id="animalInfo" placeholder="Raça, idade, temperamento..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="eventDate">Data do Evento:</label>
+            <input type="date" id="eventDate" required />
+          </div>
+          <div class="form-group">
+            <label for="eventTime">Hora do Evento:</label>
+            <input type="time" id="eventTime" required />
+          </div>
+          <div class="form-group">
+            <label>📍 Localização do Ponto:</label>
+            <input
+              type="number"
+              id="adoptionLat"
+              placeholder="Latitude"
+              readonly
+              required
+            />
+            <input
+              type="number"
+              id="adoptionLon"
+              placeholder="Longitude"
+              readonly
+              required
+            />
+          </div>
+          <button type="submit" class="submit-btn">Salvar Ponto de Adoção</button>
+          <div id="formStatus" style="margin-top: 10px;"></div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-                        <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="loginEmail">Email:</label>
-                    <input type="email" id="loginEmail" required>
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">Senha:</label>
-                    <input type="password" id="loginPassword" required>
-                </div>
-                <button type="submit" class="submit-btn">Entrar</button>
-                <button type="button" class="google-btn" onclick="loginWithGoogle()">
-                    <span>🔍</span> Entrar com Google
-                </button>
-                <div id="loginError" class="error-message"></div>
-            </form>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
 
-                        <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
-                <div class="form-group">
-                    <label for="registerEmail">Email:</label>
-                    <input type="email" id="registerEmail" required>
-                </div>
-                <div class="form-group">
-                    <label for="registerPassword">Senha (mín. 6 caracteres):</label>
-                    <input type="password" id="registerPassword" minlength="6" required>
-                </div>
-                <div class="form-group">
-                    <label for="registerConfirmPassword">Confirmar Senha:</label>
-                    <input type="password" id="registerConfirmPassword" minlength="6" required>
-                </div>
-                <button type="submit" class="submit-btn">Cadastrar</button>
-                <button type="button" class="google-btn" onclick="loginWithGoogle()">
-                    <span>🔍</span> Cadastrar com Google
-                </button>
-                <div id="registerError" class="error-message"></div>
-            </form>
-        </div>
-    </div>
+  <script>
+    // Substitua estes dados pelo seu projeto Firebase real
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY_AQUI",
+      authDomain: "SEU_AUTH_DOMAIN.firebaseapp.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_STORAGE_BUCKET.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
 
-    <div class="header">
-        <div class="header-controls">
-            <button class="theme-toggle" onclick="toggleTheme()">
-                <span id="themeIcon">🌙</span>
-            </button>
-            <div id="authControl">
-                <button class="login-btn" onclick="openLoginModal()">
-                    <span>👤</span> Login
-                </button>
-            </div>
-        </div>
-        <h1>🐾 Mapa de Adoção de Animais</h1>
-        <p>Encontre animais para adoção perto de você ou cadastre um novo ponto.</p>
-    </div>
-    
-    <div class="container">
-        <div id="map"></div>
-        
-        <div class="sidebar">
-            <button id="toggleViewBtn" class="toggle-btn">Cadastrar Novo Ponto de Adoção</button>
-            
-            <div id="sensorInfoSection">
-                <h2>Informações do seu dispositivo</h2>
-                <div class="sensor-info">
-                    <div class="sensor"><span>📍 Localização:</span> <strong id="location">Aguardando...</strong></div>
-                    <div class="sensor"><span>🧭 Bússola:</span> <strong id="compass">Aguardando...</strong> <span class="compass-arrow" id="arrow">⬆️</span></div>
-                    <div class="sensor"><span>📐 Acelerômetro:</span> <strong id="motion">Aguardando...</strong></div>
-                    <div class="sensor"><span>💡 Luz ambiente:</span> <strong id="light">Aguardando...</strong></div>
-                </div>
-            </div>
-            
-            <div id="adoptionFormSection">
-                <div id="authRequiredMessage" class="auth-required-message" style="display: none;">
-                    🔒 Você precisa fazer login para cadastrar pontos de adoção!
-                </div>
-                
-                <h2>Cadastrar Novo Ponto de Adoção</h2>
-                <form id="adoptionForm">
-                    <div class="form-group">
-                        <label for="ongName">Nome da ONG:</label>
-                        <input type="text" id="ongName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="animalName">Nome do Animal:</label>
-                        <input type="text" id="animalName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="animalInfo">Info. do Animal:</label>
-                        <textarea id="animalInfo" placeholder="Raça, idade, temperamento..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="petPhotos">URLs das Fotos dos Pets (até 4, separadas por vírgula):</label>
-                        <textarea id="petPhotos" placeholder="https://exemplo.com/foto1.jpg, https://exemplo.com/foto2.jpg" rows="3"></textarea>
-                        <small style="color: var(--text-secondary); font-size: 0.85rem;">💡 Dica: Use URLs do Imgur, Cloudinary ou hospedagem própria</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="eventDate">Data do Evento:</label>
-                        <input type="date" id="eventDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="eventTime">Hora do Evento:</label>
-                        <input type="time" id="eventTime" required>
-                    </div>
-                    <div class="form-group">
-                        <label>📍 Localização do Ponto (clique no mapa):</label>
-                        <input type="number" id="adoptionLat" placeholder="Latitude" readonly required>
-                        <input type="number" id="adoptionLon" placeholder="Longitude" readonly required>
-                    </div>
-                    <button type="submit" class="submit-btn" id="submitBtn">Salvar Ponto de Adoção</button>
-                    <div id="formStatus" style="margin-top: 10px;"></div>
-                </form>
-            </div>
-        </div>
-    </div>
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    
-    <script>
-        let db;
-        let auth;
-        let map;
-        let userMarker;
-        let adoptionMarkers = [];
-        let currentUser = null;
+    let map = L.map("map").setView([-23.5505, -46.6333], 10);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
 
-        // ==== TEMA ====
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', newTheme);
-            document.getElementById('themeIcon').textContent = newTheme === 'dark' ? '☀️' : '🌙';
-            localStorage.setItem('theme', newTheme);
-        }
+    let userMarker;
+    let adoptionMarkers = [];
 
-        // Carregar tema salvo
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        document.getElementById('themeIcon').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    function initSensorsAndLocation() {
+      const userIcon = L.divIcon({
+        html: "📍",
+        className: "user-icon leaflet-div-icon",
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+      userMarker = L.marker([0, 0], { icon: userIcon }).addTo(map);
 
-        // ==== MODAL e AUTH FUNCTIONS (Mantidas) ====
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          (pos) => {
+            userMarker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
+            document.getElementById(
+              "location"
+            ).textContent = `Lat: ${pos.coords.latitude.toFixed(
+              5
+            )}, Lon: ${pos.coords.longitude.toFixed(5)}`;
+          },
+          (err) => {
+            document.getElementById("location").textContent = `Erro: ${err.message}`;
+          },
+          { enableHighAccuracy: true }
+        );
+      } else {
+        document.getElementById("location").textContent = "Geolocalização não suportada.";
+      }
 
-        function openLoginModal() {
-            document.getElementById('loginModal').classList.add('active');
-        }
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener(
+          "deviceorientation",
+          (e) => {
+            if (e.absolute || e.webkitCompassHeading !== undefined) {
+              const heading = e.webkitCompassHeading || 360 - e.alpha;
+              document.getElementById("compass").textContent =
+                heading.toFixed(2) + "°";
+              document.getElementById("arrow").style.transform = `rotate(${heading}deg)`;
+            }
+          },
+          true
+        );
+      } else {
+        document.getElementById("compass").textContent = "Não suportado.";
+      }
 
-        function closeLoginModal() {
-            document.getElementById('loginModal').classList.remove('active');
-            document.getElementById('loginError').textContent = '';
-            document.getElementById('registerError').textContent = '';
-        }
+      if (window.DeviceMotionEvent) {
+        window.addEventListener("devicemotion", (e) => {
+          const { x, y, z } = e.acceleration || { x: 0, y: 0, z: 0 };
+          document.getElementById(
+            "motion"
+          ).textContent = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, Z: ${z.toFixed(2)}`;
+        });
+      } else {
+        document.getElementById("motion").textContent = "Não suportado.";
+      }
 
-        function switchTab(tab) {
-            const tabs = document.querySelectorAll('.auth-tab');
-            const forms = document.querySelectorAll('.auth-form');
-            
-            tabs.forEach(t => t.classList.remove('active'));
-            forms.forEach(f => f.classList.remove('active'));
-            
-            if (tab === 'login') {
-                tabs[0].classList.add('active');
-                document.getElementById('loginForm').classList.add('active');
-            } else {
-                tabs[1].classList.add('active');
-                document.getElementById('registerForm').classList.add('active');
-            }
-        }
+      if ("AmbientLightSensor" in window) {
+        try {
+          const sensor = new AmbientLightSensor();
+          sensor.addEventListener("reading", () => {
+            document.getElementById("light").textContent = sensor.illuminance + " lux";
+          });
+          sensor.start();
+        } catch (err) {
+          document.getElementById("light").textContent = `Erro: ${err.message}`;
+        }
+      } else {
+        document.getElementById("light").textContent = "Não suportado.";
+      }
+    }
 
-        async function handleLogin(event) {
-            event.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorDiv = document.getElementById('loginError');
+    async function loadAdoptionLocations() {
+      try {
+        const snapshot = await db.collection("adoptionLocations").get();
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.localizacao && data.localizacao.latitude && data.localizacao.longitude) {
+            addAdoptionMarker(data);
+          }
+        });
+      } catch (error) {
+        console.error("Erro ao carregar pontos de adoção:", error);
+      }
+    }
 
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
-                errorDiv.textContent = '';
-                closeLoginModal();
-            } catch (error) {
-                errorDiv.textContent = getErrorMessage(error.code);
-            }
-        }
+    function addAdoptionMarker(data) {
+      const lat = data.localizacao.latitude;
+      const lon = data.localizacao.longitude;
+      const popupContent = `
+        <b>${data.nome_ong}</b><br>
+        Animal: ${data.animal_nome}<br>
+        Info: ${data.animal_info || "N/A"}<br>
+        Data: ${data.data_evento}<br>
+        Hora: ${data.horario_evento}
+      `;
+      const adoptionIcon = L.divIcon({
+        html: "🐾",
+        className: "adoption-icon leaflet-div-icon",
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+      const newMarker = L.marker([lat, lon], { icon: adoptionIcon })
+        .addTo(map)
+        .bindPopup(popupContent);
+      adoptionMarkers.push(newMarker);
+    }
 
-        async function handleRegister(event) {
-            event.preventDefault();
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('registerConfirmPassword').value;
-            const errorDiv = document.getElementById('registerError');
+    document
+      .getElementById("adoptionForm")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const formStatus = document.getElementById("formStatus");
+        const data = {
+          nome_ong: document.getElementById("ongName").value,
+          animal_nome: document.getElementById("animalName").value,
+          animal_info: document.getElementById("animalInfo").value,
+          data_evento: document.getElementById("eventDate").value,
+          horario_evento: document.getElementById("eventTime").value,
+          localizacao: {
+            latitude: parseFloat(document.getElementById("adoptionLat").value),
+            longitude: parseFloat(document.getElementById("adoptionLon").value),
+          },
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        try {
+          await db.collection("adoptionLocations").add(data);
+          formStatus.textContent = "Ponto de adoção salvo com sucesso!";
+          formStatus.style.color = "green";
+          document.getElementById("adoptionForm").reset();
+          addAdoptionMarker(data);
+        } catch (error) {
+          console.error("Erro ao salvar ponto de adoção:", error);
+          formStatus.textContent = "Erro ao salvar. Verifique as regras do Firebase.";
+          formStatus.style.color = "red";
+        }
+      });
 
-            if (password !== confirmPassword) {
-                errorDiv.textContent = 'As senhas não coincidem!';
-                return;
-            }
+    map.on("click", function (e) {
+      document.getElementById("adoptionLat").value = e.latlng.lat.toFixed(6);
+      document.getElementById("adoptionLon").value = e.latlng.lng.toFixed(6);
+    });
 
-            try {
-                await auth.createUserWithEmailAndPassword(email, password);
-                errorDiv.textContent = '';
-                closeLoginModal();
-            } catch (error) {
-                errorDiv.textContent = getErrorMessage(error.code);
-            }
-        }
+    document.getElementById("toggleViewBtn").addEventListener("click", function () {
+      const formSection = document.getElementById("adoptionFormSection");
+      const sensorSection = document.getElementById("sensorInfoSection");
+      const button = document.getElementById("toggleViewBtn");
+      if (formSection.style.display === "none") {
+        formSection.style.display = "block";
+        sensorSection.style.display = "none";
+        button.textContent = "Ver Minha Localização e Sensores";
+      } else {
+        formSection.style.display = "none";
+        sensorSection.style.display = "block";
+        button.textContent = "Cadastrar Novo Ponto de Adoção";
+      }
+    });
 
-        async function loginWithGoogle() {
-            try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                await auth.signInWithPopup(provider);
-                closeLoginModal();
-            } catch (error) {
-                const errorDiv = document.querySelector('.auth-form.active .error-message');
-                errorDiv.textContent = getErrorMessage(error.code);
-            }
-        }
-
-        function logout() {
-            auth.signOut();
-        }
-
-        function getErrorMessage(code) {
-            const messages = {
-                'auth/email-already-in-use': 'Este email já está em uso!',
-                'auth/invalid-email': 'Email inválido!',
-                'auth/user-not-found': 'Usuário não encontrado!',
-                'auth/wrong-password': 'Senha incorreta!',
-                'auth/weak-password': 'Senha muito fraca! Use pelo menos 6 caracteres.',
-                'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
-                'auth/popup-closed-by-user': 'Login cancelado pelo usuário.'
-            };
-            return messages[code] || 'Erro ao realizar operação. Tente novamente.';
-        }
-
-        function updateAuthUI(user) {
-            const authControl = document.getElementById('authControl');
-            const authRequiredMessage = document.getElementById('authRequiredMessage');
-            const submitBtn = document.getElementById('submitBtn');
-            
-            if (user) {
-                currentUser = user;
-                authControl.innerHTML = `
-                    <div class="user-info">
-                        <span>👤 ${user.email}</span>
-                        <button class="logout-btn" onclick="logout()">Sair</button>
-                    </div>
-                `;
-                authRequiredMessage.style.display = 'none';
-                submitBtn.disabled = false;
-            } else {
-                currentUser = null;
-                authControl.innerHTML = `
-                    <button class="login-btn" onclick="openLoginModal()">
-                        <span>👤</span> Login
-                    </button>
-                `;
-                authRequiredMessage.style.display = 'block';
-                submitBtn.disabled = true;
-            }
-        }
-
-        // ==== CRIAÇÃO DO MAPA ====
-        map = L.map('map').setView([-23.5505, -46.6333], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        // ==== INICIALIZAÇÃO (PONTO CRÍTICO) ====
-        async function initializeApp() {
-            try {
-                // CORREÇÃO: Buscando a configuração da Serverless Function (sua pasta /api/)
-                const response = await fetch('/api/firebaseConfig');
-                const firebaseConfig = await response.json();
-
-                // Verificação de erro
-                if (!firebaseConfig || !firebaseConfig.projectId) {
-                    throw new Error("Erro ao carregar a configuração do Firebase. Verifique o arquivo /api/firebaseConfig.js e as Variáveis de Ambiente.");
-                }
-
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                auth = firebase.auth();
-                
-                auth.onAuthStateChanged(user => {
-                    updateAuthUI(user);
-                });
-
-                console.log('Firebase inicializado com sucesso!');
-
-                initSensorsAndLocation();
-                loadAdoptionLocations();
-            } catch (error) {
-                console.error('Erro na inicialização:', error);
-                alert('Erro crítico ao carregar a aplicação. Verifique o console do navegador.');
-            }
-        }
-
-        // ==== SENSORES E LOCALIZAÇÃO (Mantidas) ====
-        function initSensorsAndLocation() {
-            const userIcon = L.divIcon({ html: "📍", className: "user-icon leaflet-div-icon", iconSize: [24, 24], iconAnchor: [12, 12] });
-            userMarker = L.marker([0, 0], { icon: userIcon }).addTo(map);
-
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    position => {
-                        const { latitude, longitude } = position.coords;
-                        userMarker.setLatLng([latitude, longitude]);
-                        document.getElementById("location").textContent = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
-                    },
-                    error => {
-                        document.getElementById("location").textContent = `Erro: ${error.message}`;
-                    },
-                    { enableHighAccuracy: true }
-                );
-            } else {
-                document.getElementById("location").textContent = "Geolocalização não suportada.";
-            }
-
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener("deviceorientation", function(event) {
-                    if (event.absolute || event.webkitCompassHeading !== undefined) {
-                        const heading = event.webkitCompassHeading || 360 - event.alpha;
-                        document.getElementById("compass").textContent = heading.toFixed(2) + "°";
-                        document.getElementById("arrow").style.transform = `rotate(${heading}deg)`;
-                    }
-                }, true);
-            } else { document.getElementById("compass").textContent = "Não suportado."; }
-
-            if (window.DeviceMotionEvent) {
-                window.addEventListener("devicemotion", function(event) {
-                    const { x, y, z } = event.acceleration || { x: 0, y: 0, z: 0 };
-                    document.getElementById("motion").textContent = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, Z: ${z.toFixed(2)}`;
-                });
-            } else { document.getElementById("motion").textContent = "Não suportado."; }
-
-            if ('AmbientLightSensor' in window) {
-                try {
-                    const sensor = new AmbientLightSensor();
-                    sensor.addEventListener('reading', () => { document.getElementById("light").textContent = sensor.illuminance + " lux"; });
-                    sensor.start();
-                } catch (err) { document.getElementById("light").textContent = `Erro: ${err.message}`; }
-            } else { document.getElementById("light").textContent = "Não suportado."; }
-        }
-
-        // ==== FIRESTORE E MAPA (Mantidas) ====
-        async function loadAdoptionLocations() {
-            try {
-                const snapshot = await db.collection('adoptionLocations').get();
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.localizacao && data.localizacao.latitude && data.localizacao.longitude) {
-                        addAdoptionMarker(data);
-                    }
-                });
-                console.log('Pontos de adoção carregados!');
-            } catch (error) {
-                console.error('Erro ao carregar pontos:', error);
-            }
-        }
-        
-        function addAdoptionMarker(data) {
-            const lat = data.localizacao.latitude;
-            const lon = data.localizacao.longitude;
-            
-            let petPhotos = [];
-            if (data.pet_photos) {
-                if (typeof data.pet_photos === 'string') {
-                    petPhotos = data.pet_photos.split(',').map(url => url.trim()).filter(url => url);
-                } else if (Array.isArray(data.pet_photos)) {
-                    petPhotos = data.pet_photos;
-                }
-            }
-            
-            if (petPhotos.length === 0) {
-                petPhotos = [
-                    'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400',
-                    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400',
-                    'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400',
-                    'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400'
-                ];
-            }
-            
-            petPhotos = petPhotos.slice(0, 4);
-            
-            let galleryHTML = '';
-            if (petPhotos.length > 0) {
-                galleryHTML = `
-                    <div class="pets-gallery">
-                        <h4>🐾 Pets Disponíveis</h4>
-                        <div class="pets-grid">
-                            ${petPhotos.map((photo, index) => `
-                                <div class="pet-card">
-                                    <img src="${photo}" alt="Pet ${index + 1}" onerror="this.src='https://via.placeholder.com/200x200/4facfe/ffffff?text=🐾'">
-                                    <div class="pet-card-overlay">Pet ${index + 1}</div>
-                                    ${index === 0 ? '<div class="pet-badge">⭐ Destaque</div>' : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            const popupContent = `
-                <div class="adoption-popup">
-                    <h3>🏠 ${data.nome_ong}</h3>
-                    <div class="adoption-info">
-                        <p><strong>🐕 Animal:</strong> ${data.animal_nome}</p>
-                        <p><strong>ℹ️ Info:</strong> ${data.animal_info || 'Informações não disponíveis'}</p>
-                        <p><strong>📅 Data:</strong> ${data.data_evento}</p>
-                        <p><strong>🕐 Horário:</strong> ${data.horario_evento}</p>
-                    </div>
-                    ${galleryHTML}
-                </div>
-            `;
-            
-            const adoptionIcon = L.divIcon({ 
-                html: "🐾", 
-                className: "adoption-icon leaflet-div-icon", 
-                iconSize: [32, 32], 
-                iconAnchor: [16, 16] 
-            });
-            
-            const newMarker = L.marker([lat, lon], { icon: adoptionIcon })
-                .addTo(map)
-                .bindPopup(popupContent, { 
-                    maxWidth: 380,
-                    className: 'adoption-popup-container'
-                });
-            
-            adoptionMarkers.push(newMarker);
-        }
-
-        document.getElementById('adoptionForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            if (!currentUser) {
-                alert('Você precisa estar logado para cadastrar um ponto de adoção!');
-                openLoginModal();
-                return;
-            }
-
-            const formStatus = document.getElementById('formStatus');
-            const data = {
-                nome_ong: document.getElementById('ongName').value,
-                animal_nome: document.getElementById('animalName').value,
-                animal_info: document.getElementById('animalInfo').value,
-                data_evento: document.getElementById('eventDate').value,
-                horario_evento: document.getElementById('eventTime').value,
-                pet_photos: document.getElementById('petPhotos').value.split(',').map(url => url.trim()).filter(url => url),
-                localizacao: {
-                    latitude: parseFloat(document.getElementById('adoptionLat').value),
-                    longitude: parseFloat(document.getElementById('adoptionLon').value)
-                },
-                user_email: currentUser.email,
-                user_id: currentUser.uid,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            try {
-                await db.collection('adoptionLocations').add(data);
-                formStatus.textContent = '✅ Ponto de adoção salvo com sucesso!';
-                formStatus.style.color = 'green';
-                document.getElementById('adoptionForm').reset();
-                addAdoptionMarker(data);
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                formStatus.textContent = '❌ Erro ao salvar. Verifique as permissões do Firebase.';
-                formStatus.style.color = 'red';
-            }
-        });
-        
-        map.on('click', function(e) {
-            const { lat, lng } = e.latlng;
-            document.getElementById('adoptionLat').value = lat.toFixed(6);
-            document.getElementById('adoptionLon').value = lng.toFixed(6);
-        });
-
-        // ==== INTERFACE (Mantidas) ====
-        document.getElementById('toggleViewBtn').addEventListener('click', function() {
-            const formSection = document.getElementById('adoptionFormSection');
-            const sensorSection = document.getElementById('sensorInfoSection');
-            const button = document.getElementById('toggleViewBtn');
-            if (formSection.style.display === 'none') {
-                formSection.style.display = 'block';
-                sensorSection.style.display = 'none';
-                button.textContent = 'Ver Minha Localização e Sensores';
-            } else {
-                formSection.style.display = 'none';
-                sensorSection.style.display = 'block';
-                button.textContent = 'Cadastrar Novo Ponto de Adoção';
-            }
-        });
-        
-        // Inicializa a aplicação
-        initializeApp();
-    </script>
+    // Inicialização principal
+    initSensorsAndLocation();
+    loadAdoptionLocations();
+  </script>
 </body>
 </html>
