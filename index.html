@@ -1,275 +1,284 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Adoção de Animais</title>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
-    
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; flex-direction: column; }
-        
-        .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .header h1 { font-size: 2rem; margin-bottom: 5px; }
-        .header p { font-size: 1rem; opacity: 0.9; }
-        
-        .container { display: flex; flex-grow: 1; }
-        
-        #map { flex-grow: 1; height: 100vh; min-height: 600px; }
-        
-        .sidebar { background: white; width: 350px; padding: 20px; box-shadow: -4px 0 8px rgba(0,0,0,0.1); overflow-y: auto; }
-        .sidebar h2 { margin-bottom: 20px; color: #333; }
-        
-        .sensor-info { margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #f8f9fa; border: 1px solid #e9ecef; }
-        .sensor-info .sensor { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
-        .sensor-info .sensor strong { color: #555; }
-        
-        .toggle-btn { background: #6c757d; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; cursor: pointer; margin-bottom: 20px; }
-        .toggle-btn:hover { background: #5a6268; }
-        
-        #adoptionFormSection { display: none; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
-        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        
-        .submit-btn { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; cursor: pointer; }
-        .submit-btn:hover { background: #218838; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Adoção de Animais</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 2rem; margin-bottom: 5px; }
+        .header p { font-size: 1rem; opacity: 0.9; }
+        
+        .container { display: flex; flex-grow: 1; }
+        
+        #map { flex-grow: 1; height: 100vh; min-height: 600px; }
+        
+        .sidebar { background: white; width: 350px; padding: 20px; box-shadow: -4px 0 8px rgba(0,0,0,0.1); overflow-y: auto; }
+        .sidebar h2 { margin-bottom: 20px; color: #333; }
+        
+        .sensor-info { margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #f8f9fa; border: 1px solid #e9ecef; }
+        .sensor-info .sensor { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+        .sensor-info .sensor strong { color: #555; }
+        
+        .toggle-btn { background: #6c757d; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; cursor: pointer; margin-bottom: 20px; }
+        .toggle-btn:hover { background: #5a6268; }
+        
+        #adoptionFormSection { display: none; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .submit-btn { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; cursor: pointer; }
+        .submit-btn:hover { background: #218838; }
 
-        .compass-arrow { display: inline-block; transform-origin: center; font-size: 24px; transition: transform 0.2s; }
-        .leaflet-div-icon { background: transparent; border: none; }
-    </style>
+        .compass-arrow { display: inline-block; transform-origin: center; font-size: 24px; transition: transform 0.2s; }
+        .leaflet-div-icon { background: transparent; border: none; }
+    </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🐾 Mapa de Adoção de Animais</h1>
-        <p>Encontre animais para adoção perto de você ou cadastre um novo ponto.</p>
-    </div>
-    
-    <div class="container">
-        <div id="map"></div>
-        
-        <div class="sidebar">
-            <button id="toggleViewBtn" class="toggle-btn">Cadastrar Novo Ponto de Adoção</button>
+    <div class="header">
+        <h1>🐾 Mapa de Adoção de Animais</h1>
+        <p>Encontre animais para adoção perto de você ou cadastre um novo ponto.</p>
+    </div>
+    
+    <div class="container">
+        <div id="map"></div>
+        
+        <div class="sidebar">
+            <button id="toggleViewBtn" class="toggle-btn">Cadastrar Novo Ponto de Adoção</button>
+            
+            <div id="sensorInfoSection">
+                <h2>Informações do seu dispositivo</h2>
+                <div class="sensor-info">
+                    <div class="sensor"><span>📍 Localização:</span> <strong id="location">Aguardando...</strong></div>
+                    <div class="sensor"><span>🧭 Bússola:</span> <strong id="compass">Aguardando...</strong> <span class="compass-arrow" id="arrow">⬆️</span></div>
+                    <div class="sensor"><span>📐 Acelerômetro:</span> <strong id="motion">Aguardando...</strong></div>
+                    <div class="sensor"><span>💡 Luz ambiente:</span> <strong id="light">Aguardando...</strong></div>
+                </div>
+            </div>
+            
+            <div id="adoptionFormSection">
+                <h2>Cadastrar Novo Ponto de Adoção</h2>
+                <form id="adoptionForm">
+                    <div class="form-group">
+                        <label for="ongName">Nome da ONG:</label>
+                        <input type="text" id="ongName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="animalName">Nome do Animal:</label>
+                        <input type="text" id="animalName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="animalInfo">Info. do Animal:</label>
+                        <textarea id="animalInfo" placeholder="Raça, idade, temperamento..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDate">Data do Evento:</label>
+                        <input type="date" id="eventDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventTime">Hora do Evento:</label>
+                        <input type="time" id="eventTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>📍 Localização do Ponto:</label>
+                        <input type="number" id="adoptionLat" placeholder="Latitude" readonly required>
+                        <input type="number" id="adoptionLon" placeholder="Longitude" readonly required>
+                    </div>
+                    <button type="submit" class="submit-btn">Salvar Ponto de Adoção</button>
+                    <div id="formStatus" style="margin-top: 10px;"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    
+    <script>
+        let db;
+        let map;
+        let userMarker;
+        let adoptionMarkers = [];
+
+        // ==== CRIAÇÃO IMEDIATA DO MAPA ====
+        map = L.map('map').setView([-23.5505, -46.6333], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // ==== Lógica de inicialização da aplicação (ASYNC) ====
+        async function initializeApp() {
+            try {
+                // CORREÇÃO: Buscando a configuração da Serverless Function (Vercel)
+                const response = await fetch('/api/firebaseConfig');
+                const firebaseConfig = await response.json();
+                
+                // Verifica se a configuração foi carregada corretamente
+                if (!firebaseConfig.projectId) {
+                    throw new Error("Configuração do Firebase não carregada. Verifique o arquivo /api/firebaseConfig.js e as Variáveis de Ambiente no Vercel.");
+                }
+
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                console.log('Firebase e Firestore inicializados com sucesso!');
+
+                initSensorsAndLocation(); 
+                loadAdoptionLocations(); 
+            } catch (error) {
+                console.error('Erro na inicialização da aplicação:', error);
+                alert('Erro ao carregar a aplicação. Verifique a Função Serverless e as Variáveis de Ambiente.');
+            }
+        }
+
+        // ==== Lógica de mapa e sensores ====
+        function initSensorsAndLocation() {
+            
+            // Marcador de localização do usuário
+            const userIcon = L.divIcon({ html: "📍", className: "user-icon leaflet-div-icon", iconSize: [24, 24], iconAnchor: [12, 12] });
+            userMarker = L.marker([0, 0], { icon: userIcon }).addTo(map);
+
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    position => {
+                        const { latitude, longitude } = position.coords;
+                        userMarker.setLatLng([latitude, longitude]);
+                        document.getElementById("location").textContent = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
+                    },
+                    error => {
+                        document.getElementById("location").textContent = `Erro: ${error.message}`;
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                document.getElementById("location").textContent = "Geolocalização não suportada.";
+            }
+
+            // Lógica para bússola, acelerômetro e sensor de luz
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener("deviceorientation", function(event) {
+                    if (event.absolute || event.webkitCompassHeading !== undefined) {
+                        const heading = event.webkitCompassHeading || 360 - event.alpha;
+                        document.getElementById("compass").textContent = heading.toFixed(2) + "°";
+                        document.getElementById("arrow").style.transform = `rotate(${heading}deg)`;
+                    }
+                }, true);
+            } else { document.getElementById("compass").textContent = "Não suportado."; }
+
+            if (window.DeviceMotionEvent) {
+                window.addEventListener("devicemotion", function(event) {
+                    const { x, y, z } = event.acceleration || { x: 0, y: 0, z: 0 };
+                    document.getElementById("motion").textContent = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, Z: ${z.toFixed(2)}`;
+                });
+            } else { document.getElementById("motion").textContent = "Não suportado."; }
             
-            <div id="sensorInfoSection">
-                <h2>Informações do seu dispositivo</h2>
-                <div class="sensor-info">
-                    <div class="sensor"><span>📍 Localização:</span> <strong id="location">Aguardando...</strong></div>
-                    <div class="sensor"><span>🧭 Bússola:</span> <strong id="compass">Aguardando...</strong> <span class="compass-arrow" id="arrow">⬆️</span></div>
-                    <div class="sensor"><span>📐 Acelerômetro:</span> <strong id="motion">Aguardando...</strong></div>
-                    <div class="sensor"><span>💡 Luz ambiente:</span> <strong id="light">Aguardando...</strong></div>
-                </div>
-            </div>
-            
-            <div id="adoptionFormSection">
-                <h2>Cadastrar Novo Ponto de Adoção</h2>
-                <form id="adoptionForm">
-                    <div class="form-group">
-                        <label for="ongName">Nome da ONG:</label>
-                        <input type="text" id="ongName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="animalName">Nome do Animal:</label>
-                        <input type="text" id="animalName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="animalInfo">Info. do Animal:</label>
-                        <textarea id="animalInfo" placeholder="Raça, idade, temperamento..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="eventDate">Data do Evento:</label>
-                        <input type="date" id="eventDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="eventTime">Hora do Evento:</label>
-                        <input type="time" id="eventTime" required>
-                    </div>
-                    <div class="form-group">
-                        <label>📍 Localização do Ponto:</label>
-                        <input type="number" id="adoptionLat" placeholder="Latitude" readonly required>
-                        <input type="number" id="adoptionLon" placeholder="Longitude" readonly required>
-                    </div>
-                    <button type="submit" class="submit-btn">Salvar Ponto de Adoção</button>
-                    <div id="formStatus" style="margin-top: 10px;"></div>
-                </form>
-            </div>
-        </div>
-    </div>
+            // Lógica do Sensor de Luz
+            if ('AmbientLightSensor' in window) {
+                try {
+                    const sensor = new AmbientLightSensor();
+                    sensor.addEventListener('reading', () => { document.getElementById("light").textContent = sensor.illuminance + " lux"; });
+                    sensor.start();
+                } catch (err) { document.getElementById("light").textContent = `Erro: ${err.message}`; }
+            } else { document.getElementById("light").textContent = "Não suportado."; }
+        }
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
-    
-    <script>
-        let db;
-        let map;
-        let userMarker;
-        let adoptionMarkers = [];
+        // ==== Lógica de persistência e formulário ====
+        async function loadAdoptionLocations() {
+            try {
+                const snapshot = await db.collection('adoptionLocations').get();
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.localizacao && data.localizacao.latitude && data.localizacao.longitude) {
+                        addAdoptionMarker(data);
+                    }
+                });
+                console.log('Pontos de adoção carregados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao carregar pontos de adoção:', error);
+            }
+        }
+        
+        function addAdoptionMarker(data) {
+            const lat = data.localizacao.latitude;
+            const lon = data.localizacao.longitude;
+            const popupContent = `
+                <b>${data.nome_ong}</b><br>
+                Animal: ${data.animal_nome}<br>
+                Info: ${data.animal_info || 'N/A'}<br>
+                Data: ${data.data_evento}<br>
+                Hora: ${data.horario_evento}
+            `;
+            // CORREÇÃO: Adicionando 'leaflet-div-icon' para garantir que o marcador de pata não tenha fundo branco.
+            const adoptionIcon = L.divIcon({ html: "🐾", className: "adoption-icon leaflet-div-icon", iconSize: [24, 24], iconAnchor: [12, 12] });
+            const newMarker = L.marker([lat, lon], { icon: adoptionIcon }).addTo(map).bindPopup(popupContent);
+            adoptionMarkers.push(newMarker);
+        }
 
-        // ==== CRIAÇÃO IMEDIATA DO MAPA (SOLUÇÃO PARA O ERRO) ====
-        map = L.map('map').setView([-23.5505, -46.6333], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        document.getElementById('adoptionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formStatus = document.getElementById('formStatus');
+            const data = {
+                nome_ong: document.getElementById('ongName').value,
+                animal_nome: document.getElementById('animalName').value,
+                animal_info: document.getElementById('animalInfo').value,
+                data_evento: document.getElementById('eventDate').value,
+                horario_evento: document.getElementById('eventTime').value,
+                localizacao: {
+                    latitude: parseFloat(document.getElementById('adoptionLat').value),
+                    longitude: parseFloat(document.getElementById('adoptionLon').value)
+                },
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                await db.collection('adoptionLocations').add(data);
+                formStatus.textContent = 'Ponto de adoção salvo com sucesso!';
+                formStatus.style.color = 'green';
+                document.getElementById('adoptionForm').reset();
+                addAdoptionMarker(data); 
+            } catch (error) {
+                console.error('Erro ao salvar ponto de adoção:', error);
+                formStatus.textContent = 'Erro ao salvar. Verifique as regras do Firebase.';
+                formStatus.style.color = 'red';
+            }
+        });
+        
+        // Adiciona um listener para atualizar as coordenadas no formulário
+        map.on('click', function(e) {
+            const { lat, lng } = e.latlng;
+            document.getElementById('adoptionLat').value = lat.toFixed(6);
+            document.getElementById('adoptionLon').value = lng.toFixed(6);
+        });
 
-        // ==== Lógica de inicialização da aplicação (ASYNC) ====
-        async function initializeApp() {
-            try {
-                const response = await fetch('/api/firebaseConfig');
-                const firebaseConfig = await response.json();
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                console.log('Firebase e Firestore inicializados com sucesso!');
-
-                initSensorsAndLocation(); // Inicia sensores e localização
-                loadAdoptionLocations(); // Carrega dados do Firestore
-            } catch (error) {
-                console.error('Erro na inicialização da aplicação:', error);
-                alert('Erro ao carregar a aplicação. Verifique a configuração.');
-            }
-        }
-
-        // ==== Lógica de mapa e sensores ====
-        function initSensorsAndLocation() {
-            
-            // Marcador de localização do usuário
-            const userIcon = L.divIcon({ html: "📍", className: "user-icon", iconSize: [24, 24], iconAnchor: [12, 12] });
-            userMarker = L.marker([0, 0], { icon: userIcon }).addTo(map);
-
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    position => {
-                        const { latitude, longitude } = position.coords;
-                        userMarker.setLatLng([latitude, longitude]);
-                        document.getElementById("location").textContent = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
-                    },
-                    error => {
-                        document.getElementById("location").textContent = `Erro: ${error.message}`;
-                    },
-                    { enableHighAccuracy: true }
-                );
-            } else {
-                document.getElementById("location").textContent = "Geolocalização não suportada.";
-            }
-
-            // Lógica para bússola, acelerômetro e sensor de luz
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener("deviceorientation", function(event) {
-                    if (event.absolute || event.webkitCompassHeading !== undefined) {
-                        const heading = event.webkitCompassHeading || 360 - event.alpha;
-                        document.getElementById("compass").textContent = heading.toFixed(2) + "°";
-                        document.getElementById("arrow").style.transform = `rotate(${heading}deg)`;
-                    }
-                }, true);
-            } else { document.getElementById("compass").textContent = "Não suportado."; }
-
-            if (window.DeviceMotionEvent) {
-                window.addEventListener("devicemotion", function(event) {
-                    const { x, y, z } = event.acceleration || { x: 0, y: 0, z: 0 };
-                    document.getElementById("motion").textContent = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, Z: ${z.toFixed(2)}`;
-                });
-            } else { document.getElementById("motion").textContent = "Não suportado."; }
-
-            if ('AmbientLightSensor' in window) {
-                try {
-                    const sensor = new AmbientLightSensor();
-                    sensor.addEventListener('reading', () => { document.getElementById("light").textContent = sensor.illuminance + " lux"; });
-                    sensor.start();
-                } catch (err) { document.getElementById("light").textContent = `Erro: ${err.message}`; }
-            } else { document.getElementById("light").textContent = "Não suportado."; }
-        }
-
-        // ==== Lógica de persistência e formulário ====
-        async function loadAdoptionLocations() {
-            try {
-                const snapshot = await db.collection('adoptionLocations').get();
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.localizacao && data.localizacao.latitude && data.localizacao.longitude) {
-                        addAdoptionMarker(data);
-                    }
-                });
-                console.log('Pontos de adoção carregados com sucesso!');
-            } catch (error) {
-                console.error('Erro ao carregar pontos de adoção:', error);
-            }
-        }
-        
-        function addAdoptionMarker(data) {
-            const lat = data.localizacao.latitude;
-            const lon = data.localizacao.longitude;
-            const popupContent = `
-                <b>${data.nome_ong}</b><br>
-                Animal: ${data.animal_nome}<br>
-                Info: ${data.animal_info || 'N/A'}<br>
-                Data: ${data.data_evento}<br>
-                Hora: ${data.horario_evento}
-            `;
-            const adoptionIcon = L.divIcon({ html: "🐾", className: "adoption-icon", iconSize: [24, 24], iconAnchor: [12, 12] });
-            const newMarker = L.marker([lat, lon], { icon: adoptionIcon }).addTo(map).bindPopup(popupContent);
-            adoptionMarkers.push(newMarker);
-        }
-
-        document.getElementById('adoptionForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formStatus = document.getElementById('formStatus');
-            const data = {
-                nome_ong: document.getElementById('ongName').value,
-                animal_nome: document.getElementById('animalName').value,
-                animal_info: document.getElementById('animalInfo').value,
-                data_evento: document.getElementById('eventDate').value,
-                horario_evento: document.getElementById('eventTime').value,
-                localizacao: {
-                    latitude: parseFloat(document.getElementById('adoptionLat').value),
-                    longitude: parseFloat(document.getElementById('adoptionLon').value)
-                },
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            try {
-                await db.collection('adoptionLocations').add(data);
-                formStatus.textContent = 'Ponto de adoção salvo com sucesso!';
-                formStatus.style.color = 'green';
-                document.getElementById('adoptionForm').reset();
-                addAdoptionMarker(data); // Adiciona o novo marcador ao mapa
-            } catch (error) {
-                console.error('Erro ao salvar ponto de adoção:', error);
-                formStatus.textContent = 'Erro ao salvar. Verifique as regras do Firebase.';
-                formStatus.style.color = 'red';
-            }
-        });
-        
-        // Adiciona um listener para atualizar as coordenadas no formulário
-        map.on('click', function(e) {
-            const { lat, lng } = e.latlng;
-            document.getElementById('adoptionLat').value = lat.toFixed(6);
-            document.getElementById('adoptionLon').value = lng.toFixed(6);
-        });
-
-        // ==== Lógica de interface e botões ====
-        document.getElementById('toggleViewBtn').addEventListener('click', function() {
-            const formSection = document.getElementById('adoptionFormSection');
-            const sensorSection = document.getElementById('sensorInfoSection');
-            const button = document.getElementById('toggleViewBtn');
-            if (formSection.style.display === 'none') {
-                formSection.style.display = 'block';
-                sensorSection.style.display = 'none';
-                button.textContent = 'Ver Minha Localização e Sensores';
-            } else {
-                formSection.style.display = 'none';
-                sensorSection.style.display = 'block';
-                button.textContent = 'Cadastrar Novo Ponto de Adoção';
-            }
-        });
-        
-        // Chama a função principal de inicialização
-        initializeApp();
-    </script>
+        // ==== Lógica de interface e botões ====
+        document.getElementById('toggleViewBtn').addEventListener('click', function() {
+            const formSection = document.getElementById('adoptionFormSection');
+            const sensorSection = document.getElementById('sensorInfoSection');
+            const button = document.getElementById('toggleViewBtn');
+            if (formSection.style.display === 'none') {
+                formSection.style.display = 'block';
+                sensorSection.style.display = 'none';
+                button.textContent = 'Ver Minha Localização e Sensores';
+            } else {
+                formSection.style.display = 'none';
+                sensorSection.style.display = 'block';
+                button.textContent = 'Cadastrar Novo Ponto de Adoção';
+            }
+        });
+        
+        // Chama a função principal de inicialização
+        initializeApp();
+    </script>
 </body>
 </html>
